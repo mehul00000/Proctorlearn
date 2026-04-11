@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: uid, email, displayName, role, createdAt
+    //
+    // Collection: results
+    // Fields: userId, moduleId, score, totalQuestions, completedAt, proctoringEvents
+    //
+    // Collection: live_sessions
+    // Fields: userId, userEmail, displayName, moduleId, startTime, lastHeartbeat, currentQuestionIndex, totalQuestions, score, proctoringStatus, isFaceDetected, violationCount, latestViolation, remoteCommand
+    //
+    // Collection: support_tickets
+    // Fields: userId, userEmail, displayName, subject, message, status, createdAt, adminReply, repliedAt, isReadByAdmin
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == "mehulsharma31253@gmail.com") ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'createdAt']) &&
+             data.role in ['student', 'admin'] &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 100 &&
+             data.email is string && data.email.size() >= 3 &&
+             data.createdAt is string;
+    }
+
+    function isValidResult(data) {
+      return data.keys().hasAll(['userId', 'moduleId', 'score', 'totalQuestions', 'completedAt']) &&
+             data.userId == request.auth.uid &&
+             data.score is number && data.totalQuestions is number &&
+             data.moduleId is string;
+    }
+
+    function isValidTest(data) {
+      return data.keys().hasAll(['title', 'description', 'moduleId', 'durationMinutes', 'questions']) &&
+             data.title is string && data.title.size() > 0 &&
+             data.questions is list;
+    }
+
+    function isValidLiveSession(data) {
+      return data.keys().hasAll(['userId', 'moduleId', 'startTime', 'lastHeartbeat']) &&
+             (data.userId == request.auth.uid || isAdmin());
+    }
+
+    function isValidTicket(data) {
+      return data.keys().hasAll(['userId', 'userEmail', 'displayName', 'subject', 'message', 'status', 'createdAt', 'isReadByAdmin']) &&
+             data.userId == request.auth.uid &&
+             data.status in ['open', 'replied', 'closed'];
+    }
+
+    function isValidSettings(data) {
+      return data.keys().hasAll(['id', 'proctoring', 'notifications', 'branding', 'updatedAt']) &&
+             data.id == 'system' &&
+             data.proctoring is map &&
+             data.notifications is map &&
+             data.branding is map;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      request.resource.data.role == resource.data.role;
+      allow delete: if isAdmin();
+    }
+
+    match /results/{resultId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidResult(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /tests/{testId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin() && (request.method == 'DELETE' || isValidTest(request.resource.data));
+    }
+
+    match /live_sessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidLiveSession(request.resource.data);
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin()) && isValidLiveSession(request.resource.data);
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+    }
+
+    match /support_tickets/{ticketId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if isAuthenticated() && isValidTicket(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+  }
+}

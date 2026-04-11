@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProctorLearn AI</title>
+    <script>
+      // Suppress benign Vite HMR WebSocket errors in the preview environment
+      (function() {
+        const suppress = (msg) => 
+          typeof msg === 'string' && (msg.includes('WebSocket') || msg.includes('HMR') || msg.includes('closed without opened'));
+
+        window.addEventListener('unhandledrejection', (event) => {
+          if (suppress(event.reason?.message) || suppress(event.reason)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+
+        window.addEventListener('error', (event) => {
+          if (suppress(event.message) || suppress(event.error?.message)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+
+        // Also intercept console.error as Vite logs there too
+        const originalConsoleError = console.error;
+        console.error = function(...args) {
+          if (args.length > 0 && typeof args[0] === 'string' && suppress(args[0])) {
+            return;
+          }
+          originalConsoleError.apply(console, args);
+        };
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

@@ -1,0 +1,165 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Stores student and admin profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt"]
+    },
+    "TestResult": {
+      "title": "TestResult",
+      "description": "Stores results of completed tests including proctoring logs",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "proctoringEvents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "timestamp": { "type": "number" },
+              "type": { "type": "string" },
+              "details": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["userId", "moduleId", "score", "totalQuestions", "completedAt"]
+    },
+    "Test": {
+      "title": "Test",
+      "description": "Defines a test with its questions and metadata",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctAnswer": { "type": "number" },
+              "explanation": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["title", "description", "moduleId", "durationMinutes", "questions"]
+    },
+    "LiveSession": {
+      "title": "LiveSession",
+      "description": "Stores real-time status of an ongoing test session",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "displayName": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "lastHeartbeat": { "type": "string", "format": "date-time" },
+        "currentQuestionIndex": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "score": { "type": "number" },
+        "proctoringStatus": { "type": "string", "enum": ["safe", "warning", "critical"] },
+        "isFaceDetected": { "type": "boolean" },
+        "violationCount": { "type": "number" },
+        "latestViolation": { "type": "object" }
+      },
+      "required": ["userId", "moduleId", "startTime", "lastHeartbeat"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Stores student support requests and admin replies",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "displayName": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "replied", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "adminReply": { "type": "string" },
+        "repliedAt": { "type": "string", "format": "date-time" },
+        "isReadByAdmin": { "type": "boolean" }
+      },
+      "required": ["userId", "userEmail", "displayName", "subject", "message", "status", "createdAt", "isReadByAdmin"]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "Global website configurations and proctoring rules",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "proctoring": {
+          "type": "object",
+          "properties": {
+            "faceMissingTimeout": { "type": "number" },
+            "maxTabSwitches": { "type": "number" },
+            "enableFaceDetection": { "type": "boolean" },
+            "enableTabSwitchDetection": { "type": "boolean" },
+            "enableMultipleFacesDetection": { "type": "boolean" }
+          }
+        },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "emailAlertsEnabled": { "type": "boolean" },
+            "dailySummaryEnabled": { "type": "boolean" },
+            "newUserAlertsEnabled": { "type": "boolean" }
+          }
+        },
+        "branding": {
+          "type": "object",
+          "properties": {
+            "siteName": { "type": "string" },
+            "primaryColor": { "type": "string" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "proctoring", "notifications", "branding", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Individual user profiles"
+    },
+    "/results/{resultId}": {
+      "schema": "TestResult",
+      "description": "Test results for all users"
+    },
+    "/tests/{testId}": {
+      "schema": "Test",
+      "description": "Available tests in the system"
+    },
+    "/live_sessions/{sessionId}": {
+      "schema": "LiveSession",
+      "description": "Active test sessions for real-time proctoring"
+    },
+    "/support_tickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Student support requests and inquiries"
+    },
+    "/settings/{settingId}": {
+      "schema": "SystemSettings",
+      "description": "Global system configurations"
+    }
+  }
+}

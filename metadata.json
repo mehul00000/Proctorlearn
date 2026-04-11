@@ -1,0 +1,9 @@
+{
+  "name": "Remix: Remix: ProctorLearn AI",
+  "description": "A deeptech learning and proctored exam platform for placement preparation, featuring real-time monitoring, DSA, DBMS, and Aptitude modules.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "fullscreen"
+  ]
+}
